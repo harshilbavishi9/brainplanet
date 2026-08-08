@@ -7,6 +7,7 @@ import {
   User, Planet, FocusSession, SocialUsage,
   AppLimit, DailyMission, XPHistory, MoodHistory, Notification,
 } from './database/entities';
+import { AppController } from './app.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PlanetModule } from './modules/planet/planet.module';
@@ -19,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { WebsocketsModule } from './modules/websockets/websockets.module';
 
 @Module({
+  controllers: [AppController],
   imports: [
     // ── Config ──────────────────────────────────────────────────
     ConfigModule.forRoot({ isGlobal: true }),
