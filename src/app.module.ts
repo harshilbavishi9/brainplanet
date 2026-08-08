@@ -34,7 +34,7 @@ import { WebsocketsModule } from './modules/websockets/websockets.module';
           User, Planet, FocusSession, SocialUsage,
           AppLimit, DailyMission, XPHistory, MoodHistory, Notification,
         ],
-        synchronize: config.get('NODE_ENV') !== 'production', // Only in dev!
+        synchronize: true, // Enabled for MVP
         logging: config.get('NODE_ENV') === 'development',
         ssl: config.get('NODE_ENV') === 'production'
           ? { rejectUnauthorized: false }
