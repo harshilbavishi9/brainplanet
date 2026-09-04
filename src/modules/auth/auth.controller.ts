@@ -1,12 +1,14 @@
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, RefreshDto, RequestDeletionDto, CancelDeletionDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
@@ -76,5 +78,29 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email address' })
   verifyEmail(@Body('email') email: string) {
     return this.authService.verifyEmail(email);
+  }
+
+  @Post('request-deletion')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request account deletion (72h grace period)' })
+  requestDeletion(@Body() dto: RequestDeletionDto) {
+    this.logger.log(`POST /api/auth/request-deletion received for email: ${dto.email}`);
+    return this.authService.requestDeletion(dto);
+  }
+
+  @Post('cancel-deletion')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel pending account deletion request' })
+  cancelDeletion(@Body() dto: CancelDeletionDto) {
+    this.logger.log(`POST /api/auth/cancel-deletion received for email: ${dto.email}`);
+    return this.authService.cancelDeletion(dto);
+  }
+
+  @Post('deletion-status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get deletion status for an account' })
+  deletionStatus(@Body('email') email: string) {
+    this.logger.log(`POST /api/auth/deletion-status received for email: ${email}`);
+    return this.authService.getDeletionStatus(email);
   }
 }

@@ -32,3 +32,23 @@ export class RefreshDto {
   @IsString()
   refreshToken: string;
 }
+
+export class RequestDeletionDto {
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'StrongP@ss123' })
+  @IsString()
+  password: string;
+}
+
+export class CancelDeletionDto {
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'StrongP@ss123' })
+  @IsString()
+  password: string;
+}

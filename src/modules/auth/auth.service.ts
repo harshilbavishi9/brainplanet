@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { User, Planet } from '../../database/entities';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, RequestDeletionDto, CancelDeletionDto } from './dto/auth.dto';
 import * as admin from 'firebase-admin';
 
 @Injectable()
@@ -112,6 +112,89 @@ export class AuthService {
 
   async verifyEmail(email: string) {
     return { message: `Email ${email} has been successfully verified` };
+  }
+
+  private readonly logger = new Logger(AuthService.name);
+
+  async requestDeletion(dto: RequestDeletionDto) {
+    this.logger.log(`Account deletion requested for email: ${dto.email}`);
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (!user) {
+      this.logger.warn(`Account deletion failed: User not found for email ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const isMatch = await user.comparePassword(dto.password);
+    if (!isMatch) {
+      this.logger.warn(`Account deletion failed: Password mismatch for email ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const now = new Date();
+    const scheduledDate = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+
+    user.isPendingDeletion = true;
+    user.deletionRequestedAt = now;
+    user.scheduledDeletionDate = scheduledDate;
+
+    await this.userRepo.save(user);
+
+    this.logger.log(
+      `Account deletion scheduled for user ${user.email} (ID: ${user.id}). Purge set for: ${scheduledDate.toISOString()}`,
+    );
+
+    return {
+      message: 'Within 72 hours your account will be deleted successfully.',
+      isPendingDeletion: true,
+      deletionRequestedAt: now,
+      scheduledDeletionDate: scheduledDate,
+    };
+  }
+
+  async cancelDeletion(dto: CancelDeletionDto) {
+    this.logger.log(`Cancel account deletion requested for email: ${dto.email}`);
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (!user) {
+      this.logger.warn(`Cancel deletion failed: User not found for email ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const isMatch = await user.comparePassword(dto.password);
+    if (!isMatch) {
+      this.logger.warn(`Cancel deletion failed: Password mismatch for email ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    user.isPendingDeletion = false;
+    user.deletionRequestedAt = null;
+    user.scheduledDeletionDate = null;
+
+    await this.userRepo.save(user);
+
+    this.logger.log(`Account deletion CANCELLED successfully for user ${user.email} (ID: ${user.id})`);
+
+    return {
+      message: 'Your account deletion request has been successfully cancelled.',
+      isPendingDeletion: false,
+    };
+  }
+
+  async getDeletionStatus(email: string) {
+    this.logger.log(`Fetching account deletion status for email: ${email}`);
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) {
+      this.logger.warn(`Get deletion status failed: User not found for email ${email}`);
+      throw new UnauthorizedException('User not found');
+    }
+
+    this.logger.log(`Account deletion status for ${email}: isPending=${user.isPendingDeletion}`);
+
+    return {
+      email: user.email,
+      isPendingDeletion: user.isPendingDeletion || false,
+      deletionRequestedAt: user.deletionRequestedAt,
+      scheduledDeletionDate: user.scheduledDeletionDate,
+    };
   }
 
   async logout(userId: string) {

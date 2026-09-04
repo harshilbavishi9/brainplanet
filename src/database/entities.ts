@@ -48,6 +48,18 @@ export class User {
   @Column({ default: true })
   notificationsEnabled: boolean;
 
+  @Column({ nullable: true, default: 'en' })
+  language: string;
+
+  @Column({ default: false })
+  isPendingDeletion: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deletionRequestedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  scheduledDeletionDate: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

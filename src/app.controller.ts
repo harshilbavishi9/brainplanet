@@ -7,6 +7,7 @@ export class AppController {
   @Get('health')
   @ApiOperation({ summary: 'Health check endpoint' })
   getHealth() {
+    console.log("Health checked")
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
